@@ -1,16 +1,18 @@
-from tkinter import *
 import psutil
+from tkinter import *
+
 
 
 class Interface:
-    def __init__(self, master):
+    def __init__(self, master, c):
+        self.c = c
         self.temp_label = None
         self.ram_label = None
         self.cpu_label = None
         self.master = master
-        self.initWindows()
+        self.init_windows()
 
-    def initWindows(self):
+    def init_windows(self):
         self.master.title("Monitorizare resurse SO")
         self.master.configure(bg='midnight blue')
 
@@ -28,21 +30,21 @@ class Interface:
         digi3 = Label(self.master, text="Temperature:", font="arial 24 bold", bg='midnight blue', fg="white")
         digi3.place(x=20, y=175)
         self.cpu_met()
-        self.ram_met()
-        self.others()
+        self.battery_met()
+        self.temperature_met()
+        self.master.mainloop()
 
     def cpu_met(self):
-        cpu_use = psutil.cpu_percent(interval=1)
-        self.cpu_label.config(text=' {}%'.format(cpu_use))
+        self.c.write_single_register(2, int(psutil.cpu_percent(interval=1)))
+        print(psutil.cpu_percent(interval=1))
+        self.cpu_label.config(text=' {}%'.format(int(self.c.read_holding_registers(2, 1)[0])))
         self.cpu_label.after(200, self.cpu_met)
 
-    def ram_met(self):
-        ram_use = psutil.sensors_battery()
-        self.ram_label.config(text=' {}%'.format(ram_use.percent))
-        self.ram_label.after(200, self.ram_met)
+    def battery_met(self):
+        self.c.write_single_register(1, int(psutil.sensors_battery().percent))
+        self.ram_label.config(text=' {}%'.format(int(self.c.read_holding_registers(1, 1)[0])))
+        self.ram_label.after(200, self.battery_met)
 
-    def others(self):
+    def temperature_met(self):
         temp = psutil.disk_usage('C:')
         self.temp_label.config(text=' {}%'.format(temp.percent))
-
-
