@@ -2,7 +2,6 @@ import psutil
 from tkinter import *
 
 
-
 class Interface:
     def __init__(self, master, c):
         self.c = c
@@ -10,7 +9,6 @@ class Interface:
         self.ram_label = None
         self.cpu_label = None
         self.master = master
-        self.init_windows()
 
     def init_windows(self):
         self.master.title("Monitorizare resurse SO")
@@ -35,9 +33,8 @@ class Interface:
         self.master.mainloop()
 
     def cpu_met(self):
-        self.c.write_single_register(2, int(psutil.cpu_percent(interval=1)))
-        print(psutil.cpu_percent(interval=1))
-        self.cpu_label.config(text=' {}%'.format(int(self.c.read_holding_registers(2, 1)[0])))
+        self.c.write_single_register(5, int(psutil.cpu_percent(interval=1)))
+        self.cpu_label.config(text=' {}%'.format(int(self.c.read_holding_registers(5, 1)[0])))
         self.cpu_label.after(200, self.cpu_met)
 
     def battery_met(self):

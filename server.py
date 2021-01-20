@@ -11,9 +11,10 @@ class DataBank:
     """ Data class for thread safe access to bits and words space """
 
     bits_lock = Lock()
-    bits = [False] * 0x10000
+    bits = [False] * 0x20000
     words_lock = Lock()
-    words = [0] * 0x10000
+    words = [0] * 0x20000
+    mapp = bits + words
 
     @classmethod
     def get_bits(cls, address, number=1):
@@ -189,7 +190,7 @@ class ModbusServer(object):
                     exp_status = const.EXP_ILLEGAL_FUNCTION
                 # check exception
                 if exp_status != 0:
-                    # format body of frame with exception status
+                    # format body of frame with exception status 0x80=128
                     tx_body = struct.pack('BB', rx_bd_fc + 0x80, exp_status)
                 # build frame header
                 tx_head = struct.pack('>HHHB', rx_hd_tr_id, rx_hd_pr_id, len(tx_body) + 1, rx_hd_unit_id)

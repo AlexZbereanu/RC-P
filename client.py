@@ -2,7 +2,6 @@ from tkinter import *
 import constants as const
 from interface import Interface
 from utils import set_bit
-import re
 import socket
 import select
 import struct
@@ -12,40 +11,29 @@ import random
 class ModbusClient:
     """Modbus TCP client"""
 
-    def __init__(self, host=None, port=None, unit_id=None, timeout=None,
-                 debug=None, auto_open=None, auto_close=None):
-
+    def __init__(self, host=None, port=None, timeout=None, debug=None):
         self.__hostname = 'localhost'
         self.__port = const.MODBUS_PORT
         self.__unit_id = 1
         self.__timeout = 30.0  # socket timeout
         self.__debug = False  # debug trace on/off
-        self.__auto_open = False  # auto TCP connect
-        self.__auto_close = False  # auto TCP close
         self.__sock = None  # socket handle
         self.__hd_tr_id = 0  # store transaction ID
         self.__last_except = 0  # last expect code
 
     def host(self, hostname=None):
-        """Get or set host (IPv4 or hostname like 'plc.domain.net')
+        """Get or set host (IPv4)
         """
         if (hostname is None) or (hostname == self.__hostname):
             return self.__hostname
         # when hostname change ensure old socket is close
         self.close()
-        # IPv4 ?
         try:
             socket.inet_pton(socket.AF_INET, hostname)
             self.__hostname = hostname
             return self.__hostname
         except socket.error:
             pass
-        # DNS name ?
-        if re.match('^[a-z][a-z0-9\.\-]+$', hostname):
-            self.__hostname = hostname
-            return self.__hostname
-        else:
-            return None
 
     def port(self, port=None):
         """Get or set TCP port
@@ -60,20 +48,6 @@ class ModbusClient:
             return self.__port
         else:
             return None
-
-    def auto_open(self, state=None):
-        """Get or set automatic TCP connect mode"""
-        if state is None:
-            return self.__auto_open
-        self.__auto_open = bool(state)
-        return self.__auto_open
-
-    def auto_close(self, state=None):
-        """Get or set automatic TCP close mode (after each request)"""
-        if state is None:
-            return self.__auto_close
-        self.__auto_close = bool(state)
-        return self.__auto_close
 
     def open(self):
         """Connect to modbus server (open TCP connection)
@@ -445,7 +419,7 @@ class ModbusClient:
         if not (0x0000 <= int(regs_addr) <= 0xffff):
             self.__debug_msg('write_multiple_registers(): regs_addr out of range')
             return None
-        if not (0x0001 <= int(regs_nb) <= 0x007b):
+        if not (0x0001 <= int(regs_nb) <= 0x00ff):
             self.__debug_msg('write_multiple_registers(): number of registers out of range')
             return None
         if (int(regs_addr) + int(regs_nb)) > 0x10000:
@@ -460,7 +434,7 @@ class ModbusClient:
                 self.__debug_msg('write_multiple_registers(): regs_value out of range')
                 return None
             # pack register for build frame
-            regs_val_str += struct.pack('>H', reg)
+            regs_val_str += struct.pack('>H', int(reg))
         bytes_nb = len(regs_val_str)
         # format modbus frame body
         body = struct.pack('>HHB', regs_addr, regs_nb, bytes_nb) + regs_val_str
@@ -499,13 +473,7 @@ class ModbusClient:
             return None
 
     def _send(self, data):
-        """Send data over current socket
-
-        :param data: registers value to write
-        :type data: str (Python2) or class bytes (Python3)
-        :returns: True if send ok or None if error
-        :rtype: bool or None
-        """
+        """Send data over current socket"""
         # check link
         if self.__sock is None:
             self.__debug_msg('call _send on close socket')
@@ -525,13 +493,7 @@ class ModbusClient:
             return send_l
 
     def _recv(self, max_size):
-        """Receive data over current socket
-
-        :param max_size: number of bytes to receive
-        :type max_size: int
-        :returns: receive data or None if error
-        :rtype: str (Python2) or class bytes (Python3) or None
-        """
+        """Receive data over current socket"""
         # wait for read
         if not self._can_read():
             self.close()
@@ -549,13 +511,7 @@ class ModbusClient:
         return r_buffer
 
     def _recv_all(self, size):
-        """Receive data over current socket, loop until all bytes is receive (avoid TCP frag)
-
-        :param size: number of bytes to receive
-        :type size: int
-        :returns: receive data or None if error
-        :rtype: str (Python2) or class bytes (Python3) or None
-        """
+        """Receive data over current socket, loop until all bytes is receive (avoid TCP frag)"""
         r_buffer = bytes()
         while len(r_buffer) < size:
             r_packet = self._recv(size - len(r_buffer))
@@ -565,16 +521,7 @@ class ModbusClient:
         return r_buffer
 
     def _send_mbus(self, frame):
-        """Send modbus frame
-
-        :param frame: modbus frame to send (with MBAP for TCP/CRC for RTU)
-        :type frame: str (Python2) or class bytes (Python3)
-        :returns: number of bytes send or None if error
-        :rtype: int or None
-        """
-        # for auto_open mode, check TCP and open if need
-        if self.__auto_open and not self.is_open():
-            self.open()
+        """Send modbus frame"""
         # send request
         bytes_send = self._send(frame)
         if bytes_send:
@@ -585,11 +532,7 @@ class ModbusClient:
             return None
 
     def _recv_mbus(self):
-        """Receive a modbus frame
-
-        :returns: modbus frame body or None if error
-        :rtype: str (Python2) or class bytes (Python3) or None
-        """
+        """Receive a modbus frame"""
         # receive
         # modbus TCP receive
         # 7 bytes header (mbap)
@@ -622,6 +565,7 @@ class ModbusClient:
             self.__debug_msg('_recv frame body error')
             self.close()
             return None
+        # adaugam in MBAP si PDU
         rx_frame += rx_buffer
         # dump frame
         if self.__debug:
@@ -629,8 +573,6 @@ class ModbusClient:
         # body decode
         rx_bd_fc = struct.unpack('B', rx_buffer[0:1])[0]
         f_body = rx_buffer[1:]
-        if self.__auto_close:
-            self.close()
         # check except
         if rx_bd_fc > 0x80:
             # except code
@@ -699,7 +641,7 @@ if __name__ == "__main__":
             if not c.open():
                 print("unable to connect to " + SERVER_HOST + ":" + str(SERVER_PORT))
 
-        s = Interface(root, c)
+        s = Interface(root, c).init_windows()
         # root.mainloop()
         root.destroy()
 

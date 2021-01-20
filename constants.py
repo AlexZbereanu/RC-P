@@ -1,6 +1,6 @@
-## ModBus/TCP
+# ModBus/TCP
 MODBUS_PORT = 502
-## Modbus function code
+# Modbus function code
 # standard
 READ_COILS = 0x01
 READ_DISCRETE_INPUTS = 0x02
@@ -10,7 +10,8 @@ WRITE_SINGLE_COIL = 0x05
 WRITE_SINGLE_REGISTER = 0x06
 WRITE_MULTIPLE_COILS = 0x0F
 WRITE_MULTIPLE_REGISTERS = 0x10
-## Modbus except code
+
+# Modbus except code
 EXP_ILLEGAL_FUNCTION = 0x01
 EXP_DATA_ADDRESS = 0x02
 EXP_DATA_VALUE = 0x03
