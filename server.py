@@ -13,8 +13,7 @@ class DataBank:
     bits_lock = Lock()
     bits = [False] * 0x20000
     words_lock = Lock()
-    words = [0] * 0x20000
-    mapp = bits + words
+    words = [0] * 0x40000
 
     @classmethod
     def get_bits(cls, address, number=1):
@@ -210,10 +209,7 @@ class ModbusServer(object):
         self._serve_th = None
 
     def start(self):
-        """Start the server.
-        Do nothing if server is already running.
-        This function will block if no_block is not set to True.
-        """
+        """Start the server."""
         if not self.is_run:
             # set class attribute
             ThreadingTCPServer.address_family = socket.AF_INET

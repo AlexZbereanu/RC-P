@@ -291,8 +291,7 @@ class ModbusClient:
         return registers
 
     def write_single_coil(self, bit_addr, bit_value):
-        """Modbus function WRITE_SINGLE_COIL (0x05)
-        """
+        """Modbus function WRITE_SINGLE_COIL (0x05)"""
         # check params
         if not (0 <= int(bit_addr) <= 65535):
             self.__debug_msg('write_single_coil(): bit_addr out of range')
@@ -627,8 +626,6 @@ if __name__ == "__main__":
 
     c = ModbusClient()
 
-    # uncomment this line to see debug message
-    # c.debug(True)
     # define modbus server host, port
     c.host(SERVER_HOST)
     c.port(SERVER_PORT)
@@ -643,7 +640,7 @@ if __name__ == "__main__":
 
         s = Interface(root, c).init_windows()
         # root.mainloop()
-        root.destroy()
-
-        # sleep 7s before next polling
-        # time.sleep(7)
+        try:
+            root.destroy()
+        except:
+            pass
